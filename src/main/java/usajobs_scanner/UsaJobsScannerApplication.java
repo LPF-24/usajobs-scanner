@@ -20,5 +20,6 @@ public class UsaJobsScannerApplication implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		service.searchJobs("java");
+		System.exit(0);
 	}
 }

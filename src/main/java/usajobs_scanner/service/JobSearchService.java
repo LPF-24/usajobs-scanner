@@ -22,23 +22,28 @@ public class JobSearchService {
 
         String url = "?Keyword=" + keyword;
 
-        client.get()
-                .uri(url)
-                .header("User-Agent", userAgent)
-                .header("Authorization-Key", apiKey)
-                .retrieve()
-                .bodyToMono(JsonNode.class)
-                .doOnError(Throwable::printStackTrace)
-                .subscribe(json -> {
-                    JsonNode jobs = json.path("SearchResult").path("SearchResultItems");
-                    for (JsonNode job : jobs) {
-                        JsonNode fields = job.path("MatchedObjectDescriptor");
-                        System.out.println("Title: " + fields.path("PositionTitle").asText());
-                        System.out.println("Agency: " + fields.path("OrganizationName").asText());
-                        System.out.println("Location: " + fields.path("PositionLocationDisplay").asText());
-                        System.out.println("URL: " + fields.path("PositionURI").asText());
-                        System.out.println("-".repeat(50));
-                    }
-                });
+        try {
+            JsonNode json = client.get()
+                    .uri(url)
+                    .header("User-Agent", userAgent)
+                    .header("Authorization-Key", apiKey)
+                    .retrieve()
+                    .bodyToMono(JsonNode.class)
+                    .block();
+
+            if (json != null) {
+                JsonNode jobs = json.path("SearchResult").path("SearchResultItems");
+                for (JsonNode job : jobs) {
+                    JsonNode fields = job.path("MatchedObjectDescriptor");
+                    System.out.println("Title: " + fields.path("PositionTitle").asText());
+                    System.out.println("Agency: " + fields.path("OrganizationName").asText());
+                    System.out.println("Location: " + fields.path("PositionLocationDisplay").asText());
+                    System.out.println("URL: " + fields.path("PositionURI").asText());
+                    System.out.println("-".repeat(50));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
