@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: usajobs-scanner
+
+usajobs:
+  user-agent: your@email.com
+  api-key: YOUR_API_KEY_HERE
