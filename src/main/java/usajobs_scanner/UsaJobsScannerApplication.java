@@ -5,6 +5,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import usajobs_scanner.service.JobSearchService;
 
+import java.util.Scanner;
+
 @SpringBootApplication
 public class UsaJobsScannerApplication implements CommandLineRunner {
 	private final JobSearchService service;
@@ -19,7 +21,13 @@ public class UsaJobsScannerApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		service.searchJobs(new String[]{"java", "remote", "entry level"});
+		Scanner scanner = new Scanner(System.in);
+		System.out.println("Enter keywords separated by spaces: ");
+		String[] keywords = scanner.nextLine().toLowerCase().split("\\s+");
+
+		System.out.println("How many recent days should vacancies be shown? ");
+		int days = Integer.parseInt(scanner.nextLine());
+		service.searchJobs(keywords, days);
 		System.exit(0);
 	}
 }

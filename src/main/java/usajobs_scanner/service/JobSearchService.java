@@ -12,12 +12,16 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
 public class JobSearchService {
     private final WebClient.Builder webClientBuilder;
-    private final Logger logger = LoggerFactory.getLogger(JobSearchService.class);
+    private final Logger logger = LoggerFactory.getLogger(JobSearchService.class); // с миллисекундами и смещением
 
     @Value("${usajobs.user-agent}")
     private String userAgent;
@@ -25,7 +29,7 @@ public class JobSearchService {
     @Value("${usajobs.api-key}")
     private String apiKey;
 
-    public void searchJobs(String[] keywords) {
+    public void searchJobs(String[] keywords, int days) {
         WebClient client = webClientBuilder.baseUrl("https://data.usajobs.gov/api/search").build();
 
         String joinedKeyWords = String.join("+", keywords);
@@ -47,6 +51,9 @@ public class JobSearchService {
             if (json != null) {
                 //Переход по дереву JSON: сначала к SearchResult, затем к SearchResultItems (это массив вакансий)
                 JsonNode jobs = json.path("SearchResult").path("SearchResultItems");
+
+                LocalDate cutoffDate = LocalDate.now().minusDays(days);
+
                 for (JsonNode job : jobs) {
                     //Внутри каждой вакансии есть блок MatchedObjectDescriptor, где хранятся все поля, такие как:
                     //PositionTitle
@@ -54,6 +61,20 @@ public class JobSearchService {
                     //PositionLocationDisplay
                     //PositionURI
                     JsonNode fields = job.path("MatchedObjectDescriptor");
+
+                    String dateStr = fields.path("PublicationStartDate").asText();
+
+                    // 1. Создаём шаблон, который учитывает дату, время и, возможно, доли секунды.
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSS");
+                    // 2. Парсим дату-время
+                    LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
+                    // 3. Берём только дату
+                    LocalDate publicationDate = dateTime.toLocalDate();
+
+                    if (publicationDate.isBefore(cutoffDate)) {
+                        continue;
+                    }
+
                     String title = fields.path("PositionTitle").asText();
                     //asText() - преобразует поле JSON в обычную строку (String), если поле отсутствует — вернёт пустую строку ("")
                     System.out.println("Title: " + title);
