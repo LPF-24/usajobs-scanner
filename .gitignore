@@ -1,3 +1,6 @@
+src/main/resources/application.yml
+vacancies-usa-gov.csv
+
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar

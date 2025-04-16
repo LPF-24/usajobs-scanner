@@ -14,14 +14,13 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
 public class JobSearchService {
     private final WebClient.Builder webClientBuilder;
-    private final Logger logger = LoggerFactory.getLogger(JobSearchService.class); // с миллисекундами и смещением
+    private final Logger logger = LoggerFactory.getLogger(JobSearchService.class);
 
     @Value("${usajobs.user-agent}")
     private String userAgent;
@@ -43,32 +42,33 @@ public class JobSearchService {
                     .header("User-Agent", userAgent)
                     .header("Authorization-Key", apiKey)
                     .retrieve()
-                    .bodyToMono(JsonNode.class) //преобразуй JSON-ответ в дерево объектов Jackson -
-                    // асинхронный результат, который будет доступен позже
-                    .block(); //Ожидаем результат Mono в синхронном режиме
-                    //блокирует поток, пока не получим JsonNode
+                    .bodyToMono(JsonNode.class)
+                    // Convert the JSON response into a tree of Jackson objects - an asynchronous result that will be available later
+                    .block(); // Wait for Mono result in synchronous mode - blocks the thread until it receives JsonNode
 
             if (json != null) {
-                //Переход по дереву JSON: сначала к SearchResult, затем к SearchResultItems (это массив вакансий)
+                // Navigate the JSON tree: first to SearchResult, then to SearchResultItems (this is an array of vacancies).
                 JsonNode jobs = json.path("SearchResult").path("SearchResultItems");
 
                 LocalDate cutoffDate = LocalDate.now().minusDays(days);
 
                 for (JsonNode job : jobs) {
-                    //Внутри каждой вакансии есть блок MatchedObjectDescriptor, где хранятся все поля, такие как:
-                    //PositionTitle
-                    //OrganizationName
-                    //PositionLocationDisplay
-                    //PositionURI
+                    /*
+                    Inside each vacancy there is a MatchedObjectDescriptor block where all the fields are stored, such as:
+                        - PositionTitle
+                        - OrganizationName
+                        - PositionLocationDisplay
+                        - PositionURI
+                    */
                     JsonNode fields = job.path("MatchedObjectDescriptor");
 
                     String dateStr = fields.path("PublicationStartDate").asText();
 
-                    // 1. Создаём шаблон, который учитывает дату, время и, возможно, доли секунды.
+                    // 1. Create a template that takes into account date, time, and possibly fractions of a second.
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSS");
-                    // 2. Парсим дату-время
+                    // 2. Parse date-time.
                     LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
-                    // 3. Берём только дату
+                    // 3. We take only the date.
                     LocalDate publicationDate = dateTime.toLocalDate();
 
                     if (publicationDate.isBefore(cutoffDate)) {
@@ -76,7 +76,7 @@ public class JobSearchService {
                     }
 
                     String title = fields.path("PositionTitle").asText();
-                    //asText() - преобразует поле JSON в обычную строку (String), если поле отсутствует — вернёт пустую строку ("")
+                    // asText() - converts the JSON field into a regular string (String), if the field is missing, it will return an empty string ("").
                     System.out.println("Title: " + title);
                     String agency = fields.path("OrganizationName").asText();
                     System.out.println("Agency: " + agency);
